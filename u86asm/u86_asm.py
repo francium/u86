@@ -6,6 +6,8 @@ from sys import argv
 from result import Result, Ok, Err
 
 from u86_tokenizer import Tokenizer
+from u86_parser import Parser
+from u86_trace import get_trace
 
 
 def main(argv: List[str]) -> int:
@@ -23,8 +25,12 @@ def main(argv: List[str]) -> int:
         return 1
 
     tkzr = Tokenizer(src)
-    for (token_type, token) in tkzr:
-        print(token_type, token)
+    parser = Parser(tkzr)
+
+    r_parse = parser.parse()
+    if r_parse.is_err():
+        print(get_trace(src, *r_parse.err()))
+        return 1
 
     return 0
 
