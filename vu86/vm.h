@@ -10,7 +10,7 @@
 
 
 // Machine specs
-#define REGISTER_COUNT 2
+#define REGISTER_COUNT 4
 #define RAM_SIZE 2048
 #define ROM_SIZE 1024
 #define STACK_SIZE 128
