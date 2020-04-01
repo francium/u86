@@ -75,7 +75,7 @@ const MachineOp MachineOpMap[] =  {
     OP_MOVR,
     OP_MOVFM,
     OP_MOVTM,
-    OP_MOVI,
+    OP_SET,
     OP_CMP,
     OP_JMP,
     OP_JE,
@@ -109,9 +109,9 @@ const MachineOp MachineOpMap[] =  {
     OP_XOR,
     OP_NOT,
     OP_LSHIFT,
-    OP_LSHIFTI,
     OP_RSHIFT,
-    OP_RSHIFTI,
+    OP__RES42,
+    OP__RES43,
     OP__RES44,
     OP__RES45,
     OP__RES46,
@@ -160,7 +160,7 @@ void decode_word(MachineWord *machine_word, const word _word)
             machine_word->rb = (_word & MASK_REG2) >> SHIFT_REG2;
             break;
 
-        case OP_MOVI:
+        case OP_SET:
             machine_word->ra = (_word & MASK_REG1) >> SHIFT_REG1;
             machine_word->imm = _word & MASK_IMM_VALUE;
             break;
@@ -199,12 +199,6 @@ void decode_word(MachineWord *machine_word, const word _word)
         case OP_RSHIFT:
             machine_word->ra = (_word & MASK_REG1) >> SHIFT_REG1;
             machine_word->rb = (_word & MASK_REG2) >> SHIFT_REG2;
-            break;
-
-        case OP_LSHIFTI:
-        case OP_RSHIFTI:
-            machine_word->ra = (_word & MASK_REG1) >> SHIFT_REG1;
-            machine_word->imm = _word & MASK_IMM_VALUE;
             break;
 
         case OP_HLT:
@@ -271,9 +265,9 @@ void machine_movtm(Machine *state, const MachineWord *ins)
 }
 
 
-void machine_movi(Machine *state, const MachineWord *ins)
+void machine_set(Machine *state, const MachineWord *ins)
 {
-    printf("Instruction movi value %d into register %d\n", ins->imm, ins->ra);
+    printf("Instruction set value %d into register %d\n", ins->imm, ins->ra);
     state->registers[ins->ra] = ins->imm;
 }
 
@@ -435,8 +429,8 @@ void machine_execute(Machine *state, const MachineWord *ins)
             machine_movtm(state, ins);
             break;
 
-        case OP_MOVI:
-            machine_movi(state, ins);
+        case OP_SET:
+            machine_set(state, ins);
             break;
 
         case OP_CMP:
@@ -497,14 +491,6 @@ void machine_execute(Machine *state, const MachineWord *ins)
 
         case OP_RSHIFT:
             machine_rshift(state, ins);
-            break;
-
-        case OP_LSHIFTI:
-            machine_lshifti(state, ins);
-            break;
-
-        case OP_RSHIFTI:
-            machine_rshifti(state, ins);
             break;
 
         case OP_HLT:

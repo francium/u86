@@ -12,7 +12,7 @@
 #define OP_MOVR 4
 #define OP_MOVFM 5
 #define OP_MOVTM 6
-#define OP_MOVI 7
+#define OP_SET 7
 #define OP_CMP 8
 #define OP_JMP 9
 #define OP_JE 10
@@ -46,9 +46,9 @@
 #define OP_XOR 38
 #define OP_NOT 39
 #define OP_LSHIFT 40
-#define OP_LSHIFTI 41
 #define OP_RSHIFT 42
-#define OP_RSHIFTI 43
+#define OP__RES42 44
+#define OP__RES43 45
 #define OP__RES44 44
 #define OP__RES45 45
 #define OP__RES46 46

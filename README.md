@@ -55,7 +55,6 @@ This example assumes 64K RAM, 32K ROM, 1K stack
 | xxxr              | reg      | reg     | --            |
 | xxxfm             | reg      | --      | memory addr   |
 | xxxtm             | --       | src reg | memory addr   |
-| xxxi              | reg      | --      | value         |
 '-------------------'----------'---------'---------------'
 ```
 
@@ -96,7 +95,7 @@ This example assumes 64K RAM, 32K ROM, 1K stack
 | 04  0x04     | movr    | 000100 .. REG1 REG2 ................ | mov     r1   r2        | r1 = r2                                      |
 | 05  0x05     | movfm   | 000101 .. REG1 REG2 ................ | mov     r1  [r2]       | r1 = *r2                                     |
 | 06  0x06     | movtm   | 000110 .. REG1 REG2 ................ | mov    [r1]  r2        | *r1 = r2                                     |
-| 07  0x07     | movi    | 000111 .. REG1 .... IMMEDIATE-VALUE- | mov     r1       1234  | r1 = 1234                                    |
+| 07  0x07     | set     | 000111 .. REG1 .... IMMEDIATE-VALUE- | set     r1       1234  | r1 = 1234                                    |
 | 08  0x08     | cmp     | 001000 .. REG1 REG2 ................ | cmp     r1   r2        | jf = r1 == r2 ? 0 : r1 > r2 : 1 : -1         |
 | 09  0x09     | jmp     | 001001 .. REG1 .... ................ | jmp     r1             | unconditional jump to address stored in [r1] |
 | 10  0x0a     | je      | 001010 .. REG1 .... ................ | je      r1   r2        |                                              |
@@ -112,9 +111,7 @@ This example assumes 64K RAM, 32K ROM, 1K stack
 | 38  0x26     | xor     | 100110 .. REG1 REG2 ................ | xor     r1 r2          | r1 = r1 ^ r2                                 |
 | 39  0x27     | not     | 100111 .. REG1 REG2 ................ | not     r1             | r1 = !r1                                     |
 | 40  0x28     | lshift  | 101000 .. REG1 REG2 ................ | lshift  r1 r2          |                                              |
-| 41  0x29     | lshifti | 101001 .. REG1 REG2 IMMEDIATE-VALUE- | lshift  r2       1234  |                                              |
-| 42  0x2a     | rshift  | 101010 .. REG1 REG2 ................ | rshift  r1 r2          |                                              |
-| 43  0x2b     | rshifti | 101011 .. REG1 REG2 IMMEDIATE-VALUE- | rshift  r1       1234  |                                              |
+| 41  0x29     | rshift  | 101010 .. REG1 REG2 ................ | rshift  r1 r2          |                                              |
 | ...          | ...     | ...... .. .... .... ................ |                        |                                              |
 | 63  0x3f     | hlt     | 111111 .. .... .... ................ | hlt                    | halt                                         |
 '--------------'---------'--------------------------------------'------------------------'----------------------------------------------'
@@ -140,6 +137,7 @@ mov r2 1
 add r1 r2
 mov r3 [r1]
 ```
+
 
 ### Calling Convention
 - Caller
