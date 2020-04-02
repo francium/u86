@@ -43,27 +43,31 @@ typedef byte MachineOp;
 
 typedef struct {
     MachineOp op;
+    byte res; // reversed
     byte ra;
     byte rb;
-    byte __padding;
     word imm;
 } MachineWord;
 
 typedef struct {
-    word clock;
+    size_t base_rom_ptr;            // base rom pointer
+    size_t base_stack_ptr;          // base stack pointer
+    size_t base_heap_ptr;           // base heap pointer
+
+    word clock;                     // system clock
     word pc;                        // program counter
+    word sp;                        // stack pointer
+    word bsp;                       // frame pointer
     word mar;                       // memory address register
     word mbr;                       // memory buffer register
-    word sp;                        // stack pointer
     byte jf;                        // jump flag
     byte itrpt;                     // interrupt flag
     byte hlt;                       // halt flag
-    word registers[REGISTER_COUNT];
+
+    word registers[REGISTER_COUNT]; // general purpose registers
     // We index starting at 1, so last index needs to be RAM_SIZE
+
     word ram[RAM_SIZE + 1];
-    size_t rom_ptr;                   // base rom pointer
-    size_t stack_ptr;                 // base stack pointer
-    size_t heap_ptr;                  // base heap pointer
 } Machine;
 
 
@@ -135,11 +139,52 @@ const MachineOp MachineOpMap[] =  {
 };
 
 
+void* get_register(Machine *state, const byte reg)
+{
+    switch (reg) {
+        case 0:
+            return &state->registers[0];
+        case 1:
+            return &state->registers[1];
+        case 2:
+            return &state->registers[2];
+        case 3:
+            return &state->registers[3];
+        case 4:
+            return &state->pc;
+        case 5:
+            return &state->sp;
+        case 6:
+            return &state->bsp;
+        case 7:
+            return &state->mar;
+        case 8:
+            return &state->mbr;
+        case 9:
+            return &state->jf;
+        case 10:
+            return &state->itrpt;
+        case 11:
+            return &state->hlt;
+        case 12:
+            return &state->base_rom_ptr;
+        case 13:
+            return &state->base_stack_ptr;
+        case 14:
+            return &state->base_heap_ptr;
+        case 15:
+            return &state->clock;
+    }
+
+    return (void*) -1; // null
+}
+
 void decode_word(MachineWord *machine_word, const word _word)
 {
     machine_word->op = MachineOpMap[(_word & MASK_MACHINE_OP) >> SHIFT_MACHINE_OP];
     switch (machine_word->op) {
         case OP_CALL:
+            machine_word->ra = (_word & MASK_REG1) >> SHIFT_REG1;
             break;
 
         case OP_RET:
@@ -213,21 +258,23 @@ void decode_word(MachineWord *machine_word, const word _word)
 void machine_call(Machine *state, const MachineWord *ins)
 {
     printf("Instruction call\n");
-    // TODO
+    state->ram[state->base_stack_ptr + state->sp] = state->ram[state->pc];
+    state->pc = ins->ra;
 }
 
 
 void machine_ret(Machine *state, const MachineWord *ins)
 {
     printf("Instruction ret\n");
-    // TODO
+    state->pc = state->ram[state->base_stack_ptr + state->sp];
+    state->sp--;
 }
 
 
 void machine_push(Machine *state, const MachineWord *ins)
 {
-    printf("Instruction push into register %d\n", ins->ra);
-    state->ram[state->stack_ptr + state->sp] = state->registers[ins->ra];
+    printf("Instruction push register %d onto stack\n", ins->ra);
+    state->ram[state->base_stack_ptr + state->sp] = state->registers[ins->ra];
     state->sp++;
 }
 
@@ -235,7 +282,7 @@ void machine_push(Machine *state, const MachineWord *ins)
 void machine_pop(Machine *state, const MachineWord *ins)
 {
     printf("Instruction pop into register %d\n", ins->ra);
-    state->registers[ins->ra] = state->ram[state->stack_ptr + state->sp];
+    state->registers[ins->ra] = state->ram[state->base_stack_ptr + state->sp];
     state->sp--;
 }
 
@@ -505,9 +552,17 @@ void machine_execute(Machine *state, const MachineWord *ins)
 
 static void machine_fetch(Machine *state, MachineWord *ins)
 {
-    const size_t ptr = state->rom_ptr + state->pc;
+    const size_t ptr = state->base_rom_ptr + state->pc;
     const word _word = state->ram[ptr];
     decode_word(ins, _word);
+    printf(
+        "fetched instruction: %d, %d, %d, %d, %d\n",
+        ins->op,
+        ins->res,
+        ins->ra,
+        ins->rb,
+        ins->imm
+    );
 }
 
 
@@ -550,9 +605,9 @@ void machine_reset(Machine *state)
     state->jf        = 0;
     state->itrpt     = 0;
     state->hlt       = false;
-    state->rom_ptr   = MIN_ROM_POINTER;
-    state->stack_ptr = MIN_STACK_POINTER;
-    state->heap_ptr  = MIN_HEAP_POINTER;
+    state->base_rom_ptr   = MIN_ROM_POINTER;
+    state->base_stack_ptr = MIN_STACK_POINTER;
+    state->base_heap_ptr  = MIN_HEAP_POINTER;
 
     // Reset registers
     for (int i = 0; i < REGISTER_COUNT; i++) {
@@ -568,9 +623,9 @@ void machine_reset(Machine *state)
 
 void machine_load(Machine *state, const size_t rom_size, const word *rom)
 {
-    const size_t n = (state->rom_ptr + rom_size);
+    const size_t n = (state->base_rom_ptr + rom_size);
     for (
-        size_t i = state->rom_ptr, j = 0;
+        size_t i = state->base_rom_ptr, j = 0;
         i < n;
         i++, j++
     ) {
@@ -603,11 +658,11 @@ void machine_dump_specs()
 
 void machine_dump_state(const Machine *state)
 {
-    printf("Machine State\n");
-    printf("clock\t%d\n", state->clock);
-    printf("pc\t%d\n", state->pc);
-    printf("mar\t%d\n", state->mar);
-    printf("mbr\t%d\n", state->mbr);
+    printf("Machine State\tStack\n");
+    printf("clock\t%d\t\t%d\n", state->clock, state->ram[state->sp + 3]);
+    printf("pc\t%d\t\t%d\n", state->pc, state->ram[state->sp + 2]);
+    printf("mar\t%d\t\t%d\n", state->mar, state->ram[state->sp + 1]);
+    printf("mbr\t%d\t\t%-16d<- sp\n", state->mbr, state->ram[state->sp + 0]);
     printf("sp\t%d\n", state->sp);
     printf("jf\t%d\n", state->jf);
     printf("itrpt\t%d\n", state->itrpt);

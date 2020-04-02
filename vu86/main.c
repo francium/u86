@@ -19,10 +19,62 @@
 
 
 const word sample1[] = {
-    7,  0,  0,  0,  2, // mov r1 2
-    7,  0,  1,  0,  3, // mov r2 3
-    34, 0,  0,  1,  0, // mul r1 r2
+    7,  0,  0,  0,  2, // set r0 2
+    7,  0,  1,  0,  3, // set r1 3
+    34, 0,  0,  1,  0, // mul r0 r1
     63, 0,  0,  0,  0, // hlt
+};
+
+const word sample2[] = {
+    // main:
+    //   set r0 2
+    7, 0, 0, 0, 2,
+    //   set r1 3
+    7, 0, 1, 0, 3,
+    //   push r1
+    2, 0, 1, 0, 0,
+    //   push r0       ; set as argument for subroutine
+    2, 0, 0, 0, 0,
+    //   push bsp      ; set bsp for new stack frame
+    2, 0, 6, 0, 0,
+    //   mov r1 sp
+    4, 0, 1, 5, 0,
+    //   set r2 -1
+    7, 0, 2, 0, -1,
+    //   add r1 r2
+    32, 0, 1, 2, 0,
+    //   mov bsp r1
+    4, 0, 6, 1, 0,
+    //   set r1 :add1
+    7, 0, 1, 0, 16,
+    //   call r1
+    0, 0, 1, 0, 0,
+    //   mov sp bsp    ; pop subroutine stack
+    4, 0, 5, 6, 0,
+    //   mov bsp [bsp] ; reset stack frame to this subroutine
+    5, 0, 6, 6, 0,
+    //   pop r1        ; pop off argument for subroutine; we don't care about r1
+    3, 0, 1, 0, 0,
+    //   pop r1        ; restore stored r1 value
+    3, 0, 1, 0, 0,
+    //   add r0 r1     ; add r1 to returned value in r0
+    32, 0, 0, 1, 0,
+
+    // add1:
+    //   mov r1 bsp  ; r1 = bsp
+    4, 0, 1, 6, 0,
+    //   set r0 -1
+    7, 0, 0, 0, -1,
+    //   add r1 r0   ; r1 = r1 - 1
+    32, 0, 1, 0, 0,
+    //   mov r0 [r2] ; r0 = *r2 ; r0 = *(bsp - )
+    5, 0, 0, 1, 0,
+    //   mov r1 1    ; r1 = 1
+    7, 0, 1, 0, 1,
+    //   add r0 r1   ; r0 = r0 + r1 ; r0 = r0 + 1
+    32, 0, 0, 1, 0,
+    //   ret
+    1, 0, 0, 0, 0,
 };
 
 
@@ -79,7 +131,7 @@ int main(const int argc, const char **argv)
 
     const size_t s = WORD_SEGMENTS * 4;
     word rom[s];
-    compile(s, sample1, rom);
+    compile(s, sample2, rom);
 
     Machine mach;
     machine_reset(&mach);
@@ -92,6 +144,7 @@ int main(const int argc, const char **argv)
         if (c == 'q') { break; }
 
         machine_tick(&mach);
+        printf("\n");
         machine_dump_state(&mach);
     }
 
